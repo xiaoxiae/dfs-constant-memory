@@ -1,16 +1,31 @@
 #include <vector>
+#include <span>
 
 using namespace std;
 
 /**
  * Return the number of nodes from the given graph.
+ * @param graph The graph in any of the three representations.
  */
-int vertices(vector<int> A) { return A[0]; }
+int vertices(vector<int> graph) { return graph[0]; }
 
 /**
  * Return the number of vertices from the given graph.
+ * @param graph The graph in any of the three representations.
  */
-int edges(vector<int> A) { return A[vertices(A) + 1]; }
+int edges(vector<int> graph) { return graph[vertices(graph) + 1]; }
+
+/**
+ * Return the neighbours of the given vertex.
+ * @param graph The graph in the sorted representation.
+ * @param vertex The vertex for which to return neighbours, indexed from 0.
+ */
+span<int> neighbours(vector<int> graph, int vertex) {
+    int offset = graph[vertex + 1];
+    int count = (vertex + 1 == vertices(graph) ? (int)graph.size() : graph[vertex + 2]) - graph[vertex + 1];
+    return span<int>(graph).subspan(offset, count);
+}
+
 
 /**
  * Convert the sorted representation to pointer representation, in-place.

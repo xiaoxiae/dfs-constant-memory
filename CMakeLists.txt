@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 project(inline_dfs)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 
 set(SOURCE_FILES main.cpp)
 add_executable(inline_dfs_run ${SOURCE_FILES})
