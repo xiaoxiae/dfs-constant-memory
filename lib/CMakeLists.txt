@@ -1,4 +1,11 @@
-project(Array)
+project(lib)
+
+set(HEADER_FILES
+        dfs-constant-memory.h
+        dfs-linear-memory.h
+        generator.h
+        utilities.h
+        )
 
 set(SOURCE_FILES
         dfs-constant-memory.cpp
@@ -7,4 +14,4 @@ set(SOURCE_FILES
         utilities.cpp
         )
 
-add_library(lib STATIC ${SOURCE_FILES})
+add_library(lib STATIC ${SOURCE_FILES} ${HEADER_FILES})

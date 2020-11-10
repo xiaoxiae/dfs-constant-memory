@@ -1,5 +1,6 @@
 #include <vector>
 #include <set>
+#include "utilities.h"
 
 using namespace std;
 
@@ -11,7 +12,27 @@ using namespace std;
  * @param forbidden_degrees Nodes with the degrees from the vector will not be generated.
  */
 vector<int> generate_graph(int n, int m, const set<int>& forbidden_degrees = set<int>()) {
-    return vector<int>({5, 7, 9, 12, 14, 17, 12, 2, 5, 1, 3, 4, 2, 4, 2, 3, 5, 1, 4});
+    vector<int> result(n + m + 2, 0);
+    result[0] = n;
+    result[n + 1] = m;
 
-    // TODO: the actual implementation
+    // TODO: first, randomly assign degrees to all vertices
+
+    // set all degrees to be average
+    vector<int> degrees(n);
+    int average = m / n;
+    int remaining = m % n;
+    for (int i = 0; i < degrees.size(); ++i)
+        degrees[i] = average + (i < remaining ? 1 : 0);
+
+    // randomly shuffle degrees about (m^2 times -- that seems about enough to be random)
+    // only do so if this wouldn't create
+    for (int i = 0; i < m * m; ++i) {
+        int v1 = random(0, n);
+        int v2 = random(0, n);
+        // TODO: split to header files to this isn't completely broken
+    }
+
+    // TODO: ensure that there are no forbidden degrees
+    return result;
 }
