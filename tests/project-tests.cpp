@@ -1,6 +1,14 @@
 #include "../lib/generator.h"
 #include "../lib/dfs-linear-memory.cpp"
 #include "gtest/gtest.h"
+#include <queue>
+#include <stack>
+#include <vector>
+
+
+// for running larger tests
+// too slow for development
+#define LARGE_TESTS 1
 
 // how many graphs of each type to generate and test against
 constexpr int GENERATIONS = 100;
@@ -99,16 +107,71 @@ void test_graph_generation(int n_lo, int n_hi) {
 
 TEST(ArrayTestSuite, GenerateSmall){ test_graph_generation(1, 10); }
 TEST(ArrayTestSuite, GenerateMedium){ test_graph_generation(10, 100); }
+#if LARGE_TESTS
 TEST(ArrayTestSuite, GenerateLarge){ test_graph_generation(100, 1000); }
+#endif
+
 // TODO: tests including the forbidden edges
 
 /**
+/**
  * Check the correctness of the order.
  * Positive values in the vector signal a calls to preprocess, negative to postprocess.
+ *
+ * @param graph The graph to check DFS order on.
+ * @param order A vector of values where +v means "entered a vertex" and -v means "left it". Indexed from 1.
+ * @param start The starting vertex. Indexed from 1.
  */
-void check_dfs_order(const std::vector<int>& graph, std::vector<int> order) {
-    // TODO: check order
-    // TODO: check that all accessible edges have been explored
+void check_dfs_order(std::vector<int>& graph, std::vector<int> order, int start) {
+    // find all accessible vertices from the start using BFS
+    std::vector<bool> explored(vertices(graph));
+    std::queue<int> queue;
+    queue.push(start - 1);
+    explored[start - 1] = true;
+    while (!queue.empty())  {
+        int current = queue.front();
+        queue.pop();
+
+        for(int neighbour: neighbours(graph, current)) {
+            if (!explored[neighbour - 1]) {
+                explored[neighbour - 1] = true;
+                queue.push(neighbour - 1);
+            }
+        }
+    }
+
+    // check that all of them have been explored
+    for (int i : order) explored[abs(i) - 1] = false;
+    for (int i = 0; i < explored.size(); ++i)
+        ASSERT_TRUE(!explored[i])
+        << attach_graph("The vertex " + std::to_string(i) + " is accessible but was not explored.", graph);
+
+    ASSERT_EQ(order[0], start) << attach_graph("The starting vector is not entered first.", graph);
+    ASSERT_EQ(order[order.size() - 1], -start) << attach_graph("The starting vector is not exited last.", graph);
+
+    // simulate the DF
+    std::stack<int> path;
+    path.push(start);
+
+    for (int v : order) {
+        if (abs(v) == start) continue;
+
+        // if we're appending
+        if (v > 0) {
+            auto nb = neighbours(graph, path.top() - 1);
+
+            // check if we can go to that vertex
+            ASSERT_TRUE(std::find(nb.begin(), nb.end(), v) != nb.end())
+            << attach_graph("Vertex " + std::to_string(path.top()) + " does not contain vertex " + std::to_string(v) + " as a neighbour.", graph);
+
+            path.push(v);
+        } else {
+            ASSERT_EQ(path.top(), abs(v))
+            << attach_graph("Postprocess was called on vertex " + std::to_string(abs(v)) + ", although we're in " + std::to_string(path.top()) + ":", graph);
+
+            path.pop();
+        }
+    }
 
     // check that no vertex is either both entered and visited or neither
     // done by checking whether both preprocess and postprocess is called
@@ -129,19 +192,22 @@ void test_dfs_correctness(int n_lo, int n_hi) {
         int start = random_seeded(0, vertices(graph));
 
         // a DFS run that stores the vertex order in a vector to check for correctness
+        // note that they are indexed from 1, because -0 == 0...
         dfs_linear_memory(
             graph,
             start,
-            [&order] (int v) { order.push_back(v); },
-            [&order] (int v) { order.push_back(-v); }
+            [&order] (int v) { order.push_back(v + 1); },
+            [&order] (int v) { order.push_back(-v - 1); }
         );
 
-        check_dfs_order(graph, order);
+        check_dfs_order(graph, order, start + 1);
     }
 }
 
-TEST(ArrayTestSuite, DISABLED_DFSLinearSmall){ test_dfs_correctness(10, 100, 0, 100); }
-TEST(ArrayTestSuite, DISABLED_DFSLinearMedium){ test_dfs_correctness(1000, 10000, 0, 10000); }
-TEST(ArrayTestSuite, DISABLED_DFSLinearLarge){ test_dfs_correctness(100000, 1000000, 0, 1000000); }
+TEST(ArrayTestSuite, DFSLinearSmall){ test_dfs_correctness(1, 10); }
+TEST(ArrayTestSuite, DFSLinearMedium){ test_dfs_correctness(10, 100); }
+#if LARGE_TESTS
+TEST(ArrayTestSuite, DFSLinearLarge){ test_dfs_correctness(100, 1000); }
+#endif
 
 // TODO tests for the constant-time DFS

@@ -17,6 +17,7 @@ int edges(std::vector<int>& graph);
 
 /**
  * Return the neighbours of the given vertex as a span.
+ * Note that they are indexed from 1, not 0 (as per the paper)!
  *
  * @param graph The graph in the sorted representation.
  * @param vertex The vertex for which to return neighbours, indexed from 0.
