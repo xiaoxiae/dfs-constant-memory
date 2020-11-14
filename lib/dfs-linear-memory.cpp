@@ -15,7 +15,7 @@ enum state {
  * @param postprocess A custom user function that is called each time a vertex is closed.
  */
 template<typename Pre, typename Post>
-void dfs_linear_memory(std::vector<int> &graph, int start, Pre preprocess, Post postprocess) {
+void dfs_linear_memory(std::vector<int> &graph, int start, Pre& preprocess, Post& postprocess) {
     // initialize all vertices to unexplored and the starting one to open
     std::vector<state> states(vertices(graph), unexplored);
     states[start] = explored;

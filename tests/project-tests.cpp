@@ -316,12 +316,9 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         // note that they are indexed from 1, because -0 == 0...
         int start = random(0, vertices(graph));
         std::vector<int> order;
-        dfs_linear_memory(
-                graph,
-                start,
-                [&order](int v) { order.push_back(v + 1); },
-                [&order](int v) { order.push_back(-v - 1); }
-        );
+        auto pre = [&order](int v) { order.push_back(v + 1); std::cout << v+1 << std::endl; };
+        auto post = [&order](int v) { order.push_back(-v - 1); std::cout << -v-1 << std::endl; };
+        dfs_linear_memory(graph, start, pre, post);
 
         check_dfs_order(graph, order, start + 1);
 
@@ -343,7 +340,18 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         pointer_to_sorted(graph);
         ASSERT_EQ(graph_sorted, graph) << "sorted -> pointer -> sorted conversion produced a different graph.";
 
-        // TODO: constant memory DFS tests
+        // TEST CONSTANT DFS
+        // -----------------
+        order.clear();
+        auto pre_const = [&order](int v) { order.push_back(v); std::cout << v << std::endl; };
+        auto post_const = [&order](int v) { order.push_back(-v); std::cout << -v << std::endl; };
+        graph = std::vector{5, 7, 9, 12, 14, 17, 12, 2, 5, 1, 3, 4, 2, 4, 2, 3, 5, 1, 4};
+        std::cout << attach_graph("", graph) << std::endl;
+        start = 2;
+        dfs_constant_memory(graph, start, pre_const, post_const);
+
+        check_dfs_order(graph, order, start + 1);
+        return;
     }
 }
 
@@ -371,4 +379,4 @@ TEST(ArrayTestSuite, TestMediumAllDegrees) { test(MEDIUM); }
 #if LARGE_TESTS
 TEST(ArrayTestSuite, TestLargeAllDegrees) { test(LARGE); }
 #endif
-//@formatter:on
+@formatter:on
