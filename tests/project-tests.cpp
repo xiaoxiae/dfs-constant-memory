@@ -1,10 +1,8 @@
-#include "../lib/generator.h"
 #include "../lib/dfs-linear-memory.cpp"
 #include "gtest/gtest.h"
 #include <queue>
 #include <stack>
 #include <vector>
-
 
 // for running larger tests
 // too slow for development
@@ -14,13 +12,82 @@
 constexpr int GENERATIONS = 100;
 
 /**
- * A wrapper on random() from utilities that is seeded.
+ * Return a random number in the given range. The last value is not included.
+ * Has undefined behavior if lo >= hi.
  */
-int random_seeded(int lo, int hi) {
+int random(int lo, int hi) {
     static bool seeded = false;
     if (!seeded) { seeded = true; }
 
-    return random(lo, hi);
+    return lo + rand() % (hi - lo);
+}
+
+/**
+ * A function that generates and returns a graph in the sorted representation.
+ * It generates a graph with the exact number of vertices and edges specified, and is quite slow.
+ * TODO: ensure that there are no forbidden degrees
+ * TODO: make this quicker?
+ *
+ * @param n The number of vertices.
+ * @param m The number of edges. $m <= n(n - 1)/2$.
+ * @param forbidden_degrees Nodes with the degrees from the vector will not be generated.
+ * @param loops Whether loops are allowed.
+ */
+std::vector<int>
+generate_graph(int n, int m, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false) {
+    std::vector<int> result(n + m + 2, 0);
+    result[0] = n;
+    result[n + 1] = m;
+
+    // set all degrees to be average
+    std::vector<int> degrees(n);
+    int average = m / n;
+    int remaining = m % n;
+    for (int i = 0; i < degrees.size(); ++i)
+        degrees[i] = average + (i < remaining ? 1 : 0);
+
+    // randomly shuffle degrees about (m^2 times - that seems about enough to be random)
+    // only do so if this wouldn't create a vertex of a forbidden degree
+    for (int i = 0; i < m; ++i) {
+        int v1 = random(0, n);  // vertex to take from
+        int v2 = random(0, n);  // vertex to add to
+
+        // take only up to everything from v1, but not too much, since we only have so many edges (n-1, to be exact)
+        int delta = random(0, std::min(degrees[v1] + 1, n - degrees[v2]));
+
+        if (forbidden_degrees.contains(degrees[v1] - delta) || forbidden_degrees.contains(degrees[v2] + delta))
+            continue;
+
+        degrees[v1] -= delta;
+        degrees[v2] += delta;
+    }
+
+    int vertex_index = n + 2;
+    for (int v = 0; v < n; v++) {
+        result[v + 1] = vertex_index;
+
+        // generate random neighbours
+        // we're not working on multi-graphs, so use set to prevent adding repeated neighbours
+        std::set<int> neighbours;
+
+        // possibly prevent loops
+        if (!loops)
+            neighbours.insert(v);
+
+        for (int i = 0; i < degrees[v]; i++) {
+            int r = random(0, n);
+            while (neighbours.contains(r))
+                r = (r + 1) % n;
+
+            result[vertex_index++] = r + 1;
+            neighbours.insert(r);
+        }
+
+        // sort the neighbours
+        std::sort(result.begin() + (vertex_index - degrees[v]), result.begin() + vertex_index);
+    }
+
+    return result;
 }
 
 /**
@@ -88,11 +155,11 @@ void check_graph_correctness(std::vector<int> &graph, int n, int m,
  * Check graphs of the given sizes.
  */
 std::vector<int> generate_random_graph(int n_lo, int n_hi) {
-    int n = random_seeded(n_lo, n_hi);
+    int n = random(n_lo, n_hi);
 
     // random(0, 0) has undefined behavior, because hi si not included
     // a complete directed graph has n(n - 1) edges.
-    int m = (n == 1) ? 0 : random_seeded(0, n * (n - 1) + 1);
+    int m = (n == 1) ? 0 : random(0, n * (n - 1) + 1);
 
     return generate_graph(n, m);
 }
@@ -107,7 +174,6 @@ void test_graph_generation(int n_lo, int n_hi) {
     }
 }
 
-/**
 /**
  * Check the correctness of the order.
  * Positive values in the vector signal a calls to preprocess, negative to postprocess.
@@ -184,7 +250,7 @@ void test_dfs_correctness(int n_lo, int n_hi) {
     for (int i = 0; i < GENERATIONS; ++i) {
         std::vector<int> order;
         auto graph = generate_random_graph(n_lo, n_hi);
-        int start = random_seeded(0, vertices(graph));
+        int start = random(0, vertices(graph));
 
         // a DFS run that stores the vertex order in a vector to check for correctness
         // note that they are indexed from 1, because -0 == 0...

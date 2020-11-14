@@ -2,18 +2,32 @@
 #include <span>
 #include "utilities.h"
 
+/**
+ * Return the number of nodes of the given graph.
+ */
 int vertices(std::vector<int> &graph) { return graph[0]; }
 
+/**
+ * Return the number of vertices of the given graph.
+ */
 int edges(std::vector<int> &graph) { return graph[vertices(graph) + 1]; }
 
+/**
+ * Return the neighbours of the given vertex as a span.
+ * Note that they are indexed from 1.
+ *
+ * @param graph The graph in the sorted representation.
+ * @param vertex The vertex for which to return neighbours, indexed from 1.
+ */
 std::span<int> neighbours(std::vector<int> &graph, int vertex) {
     int offset = graph[vertex];
     int count = (vertex == vertices(graph) ? (int) graph.size() : graph[vertex + 1]) - graph[vertex];
     return std::span<int>(graph).subspan(offset, count);
 }
 
-int random(int lo, int hi) { return lo + rand() % (hi - lo); }
-
+/**
+ * Convert the sorted representation to the pointer representation, in-place.
+ */
 void sorted_to_pointer(std::vector<int> &graph) {
     // non-zero-degree edges
     for (int i = vertices(graph) + 2; i < graph.size(); i++)
@@ -26,6 +40,9 @@ void sorted_to_pointer(std::vector<int> &graph) {
             graph[i] = i;
 }
 
+/**
+ * Convert the pointer representation to the swapped representation, in-place.
+ */
 void pointer_to_swap(std::vector<int> &graph) {
     for (int v = 1; v <= vertices(graph); v++) {
         if (v != graph[v]) {
@@ -37,10 +54,13 @@ void pointer_to_swap(std::vector<int> &graph) {
     }
 }
 
+/**
+ * Convert the swapped representation to the pointer representation, in-place.
+ */
 void swap_to_pointer(std::vector<int> &graph) {
     // TODO: explain that is is really important to iterate backwards!
     int v = vertices(graph);
-    for (int i = graph.size() - 1; i >= vertices(graph) + 2; i--) {
+    for (auto i = graph.size() - 1; i >= vertices(graph) + 2; i--) {
         // skip vertices of degree 0
         while (v >= 0 && graph[v] == v) v--;
         if (v < 0) break;
@@ -53,11 +73,17 @@ void swap_to_pointer(std::vector<int> &graph) {
     }
 }
 
+/**
+ * Convert the pointer representation to the sorted representation, in-place.
+ */
 void pointer_to_sorted(std::vector<int> &graph) {
     pointer_to_swap(graph);
     swap_to_sorted(graph);
 }
 
+/**
+ * Convert the swapped representation to the sorted representation, in-place.
+ */
 void swap_to_sorted(std::vector<int> &graph) {
     for (int i = vertices(graph) + 2; i < graph.size(); i++)
         // n < A[i] (non-zero-degree vertices)
