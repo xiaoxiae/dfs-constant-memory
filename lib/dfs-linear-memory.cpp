@@ -10,7 +10,7 @@ enum state {
  * Run DFS on the provided graph.
  *
  * @param graph The graph in the sorted representation.
- * @param start The starting vertex.
+ * @param start The starting vertex (indexed from 0).
  * @param preprocess A custom user function that is called each time a vertex is opened.
  * @param postprocess A custom user function that is called each time a vertex is closed.
  */
