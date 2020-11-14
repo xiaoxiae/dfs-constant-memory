@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include <set>
 #include "utilities.h"
@@ -10,5 +11,7 @@
  * @param n The number of vertices.
  * @param m The number of edges.
  * @param forbidden_degrees Nodes with the degrees from the vector will not be generated.
+ * @param loops Whether loops are allowed.
  */
-std::vector<int> generate_graph(int n, int m, const std::set<int>& forbidden_degrees = std::set<int>());
+std::vector<int>
+generate_graph(int n, int m, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false);

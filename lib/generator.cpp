@@ -5,13 +5,14 @@
 /**
  * A function that generates and returns a graph in the sorted representation.
  * It generates a graph with the exact number of vertices and edges specified, and is quite slow.
- * TODO: really ensure that there are no forbidden degrees
+ * TODO: ensure that there are no forbidden degrees
  *
  * @param n The number of vertices.
  * @param m The number of edges. $m <= n(n - 1)/2$.
  * @param forbidden_degrees Nodes with the degrees from the vector will not be generated.
  */
-std::vector<int> generate_graph(int n, int m, const std::set<int>& forbidden_degrees = std::set<int>()) {
+std::vector<int>
+generate_graph(int n, int m, const std::set<int> &forbidden_degrees = std::set<int>(), bool allow_loops = false) {
     std::vector<int> result(n + m + 2, 0);
     result[0] = n;
     result[n + 1] = m;
@@ -47,12 +48,15 @@ std::vector<int> generate_graph(int n, int m, const std::set<int>& forbidden_deg
         // we're not working on multi-graphs, so use set to prevent adding repeated neighbours
         // TODO: make this quicker
         std::set<int> neighbours;
-        neighbours.insert(v);
+
+        // possibly prevent loops
+        if (!allow_loops)
+            neighbours.insert(v);
+
         for (int i = 0; i < degrees[v]; i++) {
             int r = random(0, n);
-            while(neighbours.contains(r)) {
+            while (neighbours.contains(r))
                 r = (r + 1) % n;
-            }
 
             result[vertex_index++] = r + 1;
             neighbours.insert(r);

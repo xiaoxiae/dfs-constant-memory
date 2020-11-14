@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 
 /**
@@ -9,5 +10,5 @@
  * @param preprocess A custom user function that is called each time a vertex is opened.
  * @param postprocess A custom user function that is called each time a vertex is closed.
  */
-template <typename Pre, typename Post>
-void dfs_linear_memory(std::vector<int>& graph, int start, Pre preprocess, Post postprocess);
+template<typename Pre, typename Post>
+void dfs_linear_memory(std::vector<int> &graph, int start, Pre preprocess, Post postprocess);
