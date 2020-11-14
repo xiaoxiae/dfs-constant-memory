@@ -294,28 +294,28 @@ void check_dfs_order(std::vector<int> &graph, std::vector<int> order, int start)
 }
 
 /**
- * Test the correct generation of graphs with random parameters.
+ * Test, whether converting between the representations (when they're not modified) perserves the graph.
  */
-void test_graph_generation(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<int>(),
-                           bool loops = false) {
+void test_representations_correctness(int n_lo, int n_hi) {
     for (int i = 0; i < GENERATIONS; ++i) {
-        auto graph = generate_random_graph(n_lo, n_hi, forbidden_degrees, loops);
-
-        check_graph_correctness(graph, vertices(graph), edges(graph), forbidden_degrees, loops);
     }
 }
 
-/**
- * Test the correct generation of graphs with random parameters.
- */
-void test_dfs_correctness(int n_lo, int n_hi) {
-    for (int i = 0; i < GENERATIONS; ++i) {
-        std::vector<int> order;
-        auto graph = generate_random_graph(n_lo, n_hi);
-        int start = random(0, vertices(graph));
+// TODO: merge tests to not repeatedly generate graphs (test regular DFS -> test conversions -> tests constant DFS)
 
-        // a DFS run that stores the vertex order in a vector to check for correctness
+void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false) {
+    for (int i = 0; i < GENERATIONS; ++i) {
+        // TEST GENERATION
+        // ---------------
+        auto graph = generate_random_graph(n_lo, n_hi, forbidden_degrees, loops);
+        check_graph_correctness(graph, vertices(graph), edges(graph), forbidden_degrees, loops);
+
+        // TEST REGULAR DFS
+        // ----------------
+        // store the vertex order in a vector to check for correctness
         // note that they are indexed from 1, because -0 == 0...
+        int start = random(0, vertices(graph));
+        std::vector<int> order;
         dfs_linear_memory(
                 graph,
                 start,
@@ -324,15 +324,9 @@ void test_dfs_correctness(int n_lo, int n_hi) {
         );
 
         check_dfs_order(graph, order, start + 1);
-    }
-}
 
-/**
- * Test, whether converting between the representations (when they're not modified) perserves the graph.
- */
-void test_representations_correctness(int n_lo, int n_hi) {
-    for (int i = 0; i < GENERATIONS; ++i) {
-        auto graph = generate_random_graph(n_lo, n_hi);
+        // TEST GRAPH REPRESENTATIONS
+        // --------------------------
         auto graph_sorted(graph);
 
         sorted_to_pointer(graph);
@@ -348,50 +342,33 @@ void test_representations_correctness(int n_lo, int n_hi) {
 
         pointer_to_sorted(graph);
         ASSERT_EQ(graph_sorted, graph) << "sorted -> pointer -> sorted conversion produced a different graph.";
+
+        // TODO: constant memory DFS tests
     }
 }
 
-// TODO: merge tests to not repeatedly generate graphs (generate -> test graph -> test regular DFS -> test conversions -> tests constant DFS)
-
 //@formatter:off
-
-TEST(ArrayTestSuite, TestSmall) { test_graph_generation(SMALL); }
-TEST(ArrayTestSuite, TestMedium) { test_graph_generation(MEDIUM); }
+TEST(ArrayTestSuite, TestSmallNoZeroOneDegrees) { test(SMALL, std::set{0, 1}); }
+TEST(ArrayTestSuite, TestMediumNoZeroOneDegrees) { test(MEDIUM, std::set{0, 1}); }
 #if LARGE_TESTS
-TEST(ArrayTestSuite, TestLarge){ test_graph_generation(LARGE); }
+TEST(ArrayTestSuite, TestLargeNoZeroOneDegrees) { test(LARGE, std::set{0, 1}); }
 #endif
 
-TEST(ArrayTestSuite, GenerateSmallNoZeroDegrees) { test_graph_generation(SMALL, std::set{0}); }
-TEST(ArrayTestSuite, GenerateMediumNoZeroDegrees) { test_graph_generation(MEDIUM, std::set{0}); }
+TEST(ArrayTestSuite, TestSmallNoOneDegrees) { test(SMALL, std::set{1}); }
+TEST(ArrayTestSuite, TestMediumNoOneDegrees) { test(MEDIUM, std::set{1}); }
 #if LARGE_TESTS
-TEST(ArrayTestSuite, GenerateLargeNoZeroDegrees){ test_graph_generation(LARGE, std::set{0}); }
+TEST(ArrayTestSuite, TestLargeNoOneDegrees) { test(LARGE, std::set{1}); }
 #endif
 
-TEST(ArrayTestSuite, GenerateSmallNoOneDegrees) { test_graph_generation(SMALL, std::set{1}); }
-TEST(ArrayTestSuite, GenerateMediumNoOneDegrees) { test_graph_generation(MEDIUM, std::set{1}); }
+TEST(ArrayTestSuite, TestSmallNoZeroDegrees) { test(SMALL, std::set{0}); }
+TEST(ArrayTestSuite, TestMediumNoZeroDegrees) { test(MEDIUM, std::set{0}); }
 #if LARGE_TESTS
-TEST(ArrayTestSuite, GenerateLargeNoOneDegrees){ test_graph_generation(LARGE, std::set{1}); }
+TEST(ArrayTestSuite, TestLargeNoZeroDegrees) { test(LARGE, std::set{0}); }
 #endif
 
-TEST(ArrayTestSuite, GenerateSmallNoZeroOneDegrees) { test_graph_generation(SMALL, std::set{0, 1}); }
-TEST(ArrayTestSuite, GenerateMediumNoZeroOneDegrees) { test_graph_generation(MEDIUM, std::set{0, 1}); }
+TEST(ArrayTestSuite, TestSmallAllDegrees) { test(SMALL); }
+TEST(ArrayTestSuite, TestMediumAllDegrees) { test(MEDIUM); }
 #if LARGE_TESTS
-TEST(ArrayTestSuite, GenerateLargeNoZeroOneDegrees){ test_graph_generation(LARGE, std::set{0, 1}); }
+TEST(ArrayTestSuite, TestLargeAllDegrees) { test(LARGE); }
 #endif
-
-TEST(ArrayTestSuite, DFSLinearSmall) { test_dfs_correctness(SMALL); }
-TEST(ArrayTestSuite, DFSLinearMedium) { test_dfs_correctness(MEDIUM); }
-#if LARGE_TESTS
-TEST(ArrayTestSuite, DFSLinearLarge){ test_dfs_correctness(LARGE); }
-#endif
-
-TEST(ArrayTestSuite, TestRepresentationsSmall) { test_representations_correctness(SMALL); }
-TEST(ArrayTestSuite, TestRepresentationsMedium) { test_representations_correctness(MEDIUM); }
-#if LARGE_TESTS
-TEST(ArrayTestSuite, TestRepresentationsLarge){ test_representations_correctness(LARGE); }
-#endif
-
-// TODO: tests including the forbidden edges
-// TODO: constant memory DFS tests
-
 //@formatter:on
