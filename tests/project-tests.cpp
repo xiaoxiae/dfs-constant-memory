@@ -8,6 +8,10 @@
 // too slow for development
 #define LARGE_TESTS 0
 
+#define SMALL 3, 10
+#define MEDIUM 10, 100
+#define LARGE 100, 1000
+
 // how many graphs of each type to generate and test against
 constexpr int GENERATIONS = 100;
 
@@ -25,16 +29,14 @@ int random(int lo, int hi) {
 /**
  * A function that generates and returns a graph in the sorted representation.
  * It generates a graph with the exact number of vertices and edges specified, and is quite slow.
- * TODO: ensure that there are no forbidden degrees
  * TODO: make this quicker?
  *
  * @param n The number of vertices.
  * @param m The number of edges. $m <= n(n - 1)/2$.
- * @param forbidden_degrees Nodes with the degrees from the vector will not be generated.
  * @param loops Whether loops are allowed.
  */
 std::vector<int>
-generate_graph(int n, int m, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false) {
+generate_graph(int n, int m, bool loops = false) {
     std::vector<int> result(n + m + 2, 0);
     result[0] = n;
     result[n + 1] = m;
@@ -55,12 +57,62 @@ generate_graph(int n, int m, const std::set<int> &forbidden_degrees = std::set<i
         // take only up to everything from v1, but not too much, since we only have so many edges (n-1, to be exact)
         int delta = random(0, std::min(degrees[v1] + 1, n - degrees[v2]));
 
-        if (forbidden_degrees.contains(degrees[v1] - delta) || forbidden_degrees.contains(degrees[v2] + delta))
-            continue;
-
         degrees[v1] -= delta;
         degrees[v2] += delta;
     }
+
+    int vertex_index = n + 2;
+    for (int v = 0; v < n; v++) {
+        result[v + 1] = vertex_index;
+
+        // generate random neighbours
+        // we're not working on multi-graphs, so use set to prevent adding repeated neighbours
+        std::set<int> neighbours;
+
+        // possibly prevent loops
+        if (!loops)
+            neighbours.insert(v);
+
+        for (int i = 0; i < degrees[v]; i++) {
+            int r = random(0, n);
+            while (neighbours.contains(r))
+                r = (r + 1) % n;
+
+            result[vertex_index++] = r + 1;
+            neighbours.insert(r);
+        }
+
+        // sort the neighbours
+        std::sort(result.begin() + (vertex_index - degrees[v]), result.begin() + vertex_index);
+    }
+
+    return result;
+}
+
+/**
+ * A function that generates and returns a graph in the sorted representation.
+ * It generates a graph with the exact number of vertices and some edges.
+ * TODO: ensure that there are no forbidden degrees
+ * TODO: make this quicker?
+ *
+ * @param n The number of vertices.
+ * @param forbidden_degrees Nodes with the degrees from the vector will not be generated. TODO: must work with n
+ * @param loops Whether loops are allowed.
+ */
+std::vector<int>
+generate_graph(int n, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false) {
+    // set all degrees to be random
+    int m = 0;
+    std::vector<int> degrees(n);
+    for (int &degree : degrees) {
+        degree = random(0, n - 1);
+        while (forbidden_degrees.contains(degree)) degree = (degree + 1) % n;
+        m += degree;
+    }
+
+    std::vector<int> result(n + m + 2, 0);
+    result[0] = n;
+    result[n + 1] = m;
 
     int vertex_index = n + 2;
     for (int v = 0; v < n; v++) {
@@ -154,23 +206,19 @@ void check_graph_correctness(std::vector<int> &graph, int n, int m,
 /**
  * Check graphs of the given sizes.
  */
-std::vector<int> generate_random_graph(int n_lo, int n_hi) {
+std::vector<int> generate_random_graph(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<int>(),
+                                       bool loops = false) {
     int n = random(n_lo, n_hi);
 
-    // random(0, 0) has undefined behavior, because hi si not included
-    // a complete directed graph has n(n - 1) edges.
-    int m = (n == 1) ? 0 : random(0, n * (n - 1) + 1);
+    // use different generation algorithms, depending on whether we want to forbid certain degrees
+    if (forbidden_degrees.empty()) {
+        // random(0, 0) has undefined behavior, because hi si not included
+        // a complete directed graph has n(n - 1) edges.
+        int m = (n == 1) ? 0 : random(0, n * (n - 1) + 1);
 
-    return generate_graph(n, m);
-}
-
-/**
- * Test the correct generation of graphs with random parameters.
- */
-void test_graph_generation(int n_lo, int n_hi) {
-    for (int i = 0; i < GENERATIONS; ++i) {
-        auto graph = generate_random_graph(n_lo, n_hi);
-        check_graph_correctness(graph, vertices(graph), edges(graph));
+        return generate_graph(n, m);
+    } else {
+        return generate_graph(n, forbidden_degrees);
     }
 }
 
@@ -246,6 +294,18 @@ void check_dfs_order(std::vector<int> &graph, std::vector<int> order, int start)
 /**
  * Test the correct generation of graphs with random parameters.
  */
+void test_graph_generation(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<int>(),
+                           bool loops = false) {
+    for (int i = 0; i < GENERATIONS; ++i) {
+        auto graph = generate_random_graph(n_lo, n_hi, forbidden_degrees, loops);
+
+        check_graph_correctness(graph, vertices(graph), edges(graph), forbidden_degrees, loops);
+    }
+}
+
+/**
+ * Test the correct generation of graphs with random parameters.
+ */
 void test_dfs_correctness(int n_lo, int n_hi) {
     for (int i = 0; i < GENERATIONS; ++i) {
         std::vector<int> order;
@@ -275,42 +335,73 @@ void test_representations_correctness(int n_lo, int n_hi) {
 
         sorted_to_pointer(graph);
         pointer_to_sorted(graph);
-        ASSERT_EQ(graph_sorted, graph); // sorted -> pointer -> sorted
+        ASSERT_EQ(graph_sorted, graph) << "sorted -> pointer -> sorted conversion produced a different graph.";
 
         sorted_to_pointer(graph);
         auto graph_pointer(graph);
 
         pointer_to_swap(graph);
         swap_to_pointer(graph);
-        ASSERT_EQ(graph_pointer, graph);  // pointer -> swap -> pointer
+        ASSERT_EQ(graph_pointer, graph) << "pointer -> swap -> pointer conversion produced a different graph.";
 
         pointer_to_sorted(graph);
-        ASSERT_EQ(graph_sorted, graph);  // sorted -> pointer -> swap -> pointer -> sorted
+        ASSERT_EQ(graph_sorted, graph) << "sorted -> pointer -> sorted conversion produced a different graph.";
     }
 }
 
-TEST(ArrayTestSuite, GenerateSmall) { test_graph_generation(1, 10); }
+// TODO: merge tests to not repeatedly generate graphs (generate -> test graph -> test regular DFS -> test conversions -> tests constant DFS)
 
-TEST(ArrayTestSuite, GenerateMedium) { test_graph_generation(10, 100); }
+TEST(ArrayTestSuite, GenerateSmallAllDegrees) { test_graph_generation(SMALL); }
+
+TEST(ArrayTestSuite, GenerateMediumAllDegrees) { test_graph_generation(MEDIUM); }
 
 #if LARGE_TESTS
-TEST(ArrayTestSuite, GenerateLarge){ test_graph_generation(100, 1000); }
+TEST(ArrayTestSuite, GenerateLargeAllDegrees){ test_graph_generation(LARGE); }
 #endif
 
-TEST(ArrayTestSuite, DFSLinearSmall) { test_dfs_correctness(1, 10); }
 
-TEST(ArrayTestSuite, DFSLinearMedium) { test_dfs_correctness(10, 100); }
+TEST(ArrayTestSuite, GenerateSmallNoZeroDegrees) { test_graph_generation(SMALL, std::set{0}); }
+
+TEST(ArrayTestSuite, GenerateMediumNoZeroDegrees) { test_graph_generation(MEDIUM, std::set{0}); }
 
 #if LARGE_TESTS
-TEST(ArrayTestSuite, DFSLinearLarge){ test_dfs_correctness(100, 1000); }
+TEST(ArrayTestSuite, GenerateLargeNoZeroDegrees){ test_graph_generation(LARGE, std::set{0}); }
 #endif
 
-TEST(ArrayTestSuite, TestRepresentationsSmall) { test_representations_correctness(1, 10); }
 
-TEST(ArrayTestSuite, TestRepresentationsMedium) { test_representations_correctness(10, 100); }
+TEST(ArrayTestSuite, GenerateSmallNoOneDegrees) { test_graph_generation(SMALL, std::set{1}); }
+
+TEST(ArrayTestSuite, GenerateMediumNoOneDegrees) { test_graph_generation(MEDIUM, std::set{1}); }
 
 #if LARGE_TESTS
-TEST(ArrayTestSuite, TestRepresentationsLarge){ test_representations_correctness(100, 1000); }
+TEST(ArrayTestSuite, GenerateLargeNoOneDegrees){ test_graph_generation(LARGE, std::set{1}); }
+#endif
+
+
+TEST(ArrayTestSuite, GenerateSmallNoZeroOneDegrees) { test_graph_generation(SMALL, std::set{0, 1}); }
+
+TEST(ArrayTestSuite, GenerateMediumNoZeroOneDegrees) { test_graph_generation(MEDIUM, std::set{0, 1}); }
+
+#if LARGE_TESTS
+TEST(ArrayTestSuite, GenerateLargeNoZeroOneDegrees){ test_graph_generation(LARGE, std::set{0, 1}); }
+#endif
+
+
+TEST(ArrayTestSuite, DFSLinearSmall) { test_dfs_correctness(SMALL); }
+
+TEST(ArrayTestSuite, DFSLinearMedium) { test_dfs_correctness(MEDIUM); }
+
+#if LARGE_TESTS
+TEST(ArrayTestSuite, DFSLinearLarge){ test_dfs_correctness(LARGE); }
+#endif
+
+
+TEST(ArrayTestSuite, TestRepresentationsSmall) { test_representations_correctness(SMALL); }
+
+TEST(ArrayTestSuite, TestRepresentationsMedium) { test_representations_correctness(MEDIUM); }
+
+#if LARGE_TESTS
+TEST(ArrayTestSuite, TestRepresentationsLarge){ test_representations_correctness(LARGE); }
 #endif
 
 // TODO: tests including the forbidden edges

@@ -1,7 +1,6 @@
 #include <vector>
 #include <stack>
 #include "utilities.h"
-#include "dfs-linear-memory.h"
 
 enum state {
     unexplored, explored
