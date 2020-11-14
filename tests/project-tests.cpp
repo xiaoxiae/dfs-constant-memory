@@ -293,16 +293,6 @@ void check_dfs_order(std::vector<int> &graph, std::vector<int> order, int start)
                             "Preprocess and postprocess not called on " + std::to_string(order[i]) + ".", graph);
 }
 
-/**
- * Test, whether converting between the representations (when they're not modified) perserves the graph.
- */
-void test_representations_correctness(int n_lo, int n_hi) {
-    for (int i = 0; i < GENERATIONS; ++i) {
-    }
-}
-
-// TODO: merge tests to not repeatedly generate graphs (test regular DFS -> test conversions -> tests constant DFS)
-
 void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<int>(), bool loops = false) {
     for (int i = 0; i < GENERATIONS; ++i) {
         // TEST GENERATION
@@ -316,9 +306,9 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         // note that they are indexed from 1, because -0 == 0...
         int start = random(0, vertices(graph));
         std::vector<int> order;
-        auto pre = [&order](int v) { order.push_back(v + 1); std::cout << v+1 << std::endl; };
-        auto post = [&order](int v) { order.push_back(-v - 1); std::cout << -v-1 << std::endl; };
-        dfs_linear_memory(graph, start, pre, post);
+        auto pre_linear = [&order](int v) { order.push_back(v + 1); };
+        auto post_linear = [&order](int v) { order.push_back(-v - 1); };
+        dfs_linear_memory(graph, start, pre_linear, post_linear);
 
         check_dfs_order(graph, order, start + 1);
 
@@ -343,15 +333,11 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         // TEST CONSTANT DFS
         // -----------------
         order.clear();
-        auto pre_const = [&order](int v) { order.push_back(v); std::cout << v << std::endl; };
-        auto post_const = [&order](int v) { order.push_back(-v); std::cout << -v << std::endl; };
-        graph = std::vector{5, 7, 9, 12, 14, 17, 12, 2, 5, 1, 3, 4, 2, 4, 2, 3, 5, 1, 4};
-        std::cout << attach_graph("", graph) << std::endl;
-        start = 2;
-        dfs_constant_memory(graph, start, pre_const, post_const);
+        auto pre_constant = [&order](int v) { order.push_back(v); };
+        auto post_constant = [&order](int v) { order.push_back(-v); };
+        dfs_constant_memory(graph, start, pre_constant, post_constant);
 
         check_dfs_order(graph, order, start + 1);
-        return;
     }
 }
 
@@ -379,4 +365,4 @@ TEST(ArrayTestSuite, TestMediumAllDegrees) { test(MEDIUM); }
 #if LARGE_TESTS
 TEST(ArrayTestSuite, TestLargeAllDegrees) { test(LARGE); }
 #endif
-@formatter:on
+//@formatter:on

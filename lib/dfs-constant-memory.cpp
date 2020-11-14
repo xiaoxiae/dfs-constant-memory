@@ -5,9 +5,6 @@
 
 template<typename Pre, typename Post>
 class DFS {
-    // TODO: make non-recursive
-    // TODO: - probably a single function with gotos, since everything is tail recursion
-
     std::vector<int> &graph, &T, &A;
     Pre &preprocess;
     Post &postprocess;
@@ -22,115 +19,148 @@ public:
         v_s = _v_s;
     }
 
+    /**
+     * Return true if the specified vertex is white, else return false.
+     */
     bool isWhite(int v) {
-        // return true if a vertex is white
         return (v != v_s) && (1 <= A[T[v]] && A[T[v]] <= n);
     }
 
-    void run() {
-        // find the position of the starting vertex
-        for (int p = n + 2; p < n + m + 2; p++)
-            if (A[p] == v_s)
-                visit(p);
-    }
-
-    void restore() {
-        // restore the representation
-        for (int v = 1; v < n + 1; v++)
-            T[v] -= 1;
-    }
-
+    /**
+     * Iterate backwards from index p and return the index of the start of the adjacency array.
+     */
     int iterate_backwards(int p) {
-        // iterate backwards from index p until we reach another adjacency array
-        if (A[p] <= n) return p;
-        return iterate_backwards(p - 1);
+        while (A[p] > n) p--;
+        return p;
     }
 
-    void visit(int p) {
-        // call preprocess and visit the next neighbour
-        preprocess(A[p]);
-        nextNeighbor(p, true);
-    }
+    /**
+     * Run the DFS on the graph.
+     */
+    void run() {
+        // variables for transferring states
+        int p;
+        bool is_first;
 
-    void nextNeighbor(int p, bool is_first) {
-        // main logic for changing vertices
-        // is_first prevents access for non-existent indexes (p >= n + m + 2)
-        // TODO: ^ what?
+        // find the position of the starting vertex and start the DFS
+        for (p = n + 2; p < n + m + 2; p++)
+            if (A[p] == v_s)
+                goto visit;
 
-        // if it's the first index
-        if (is_first && A[p] <= n) {
-            int v = A[p];
-            p += 1;
-
-            // swap the first and the second
-            // the first is stored in the adjacency array of the predecessor
-            if (v == v_s) std::swap(A[T[p - 1]], A[p]);
-            else std::swap(A[A[T[p - 1]]], A[p]);
-
-            follow(p);
+        /**
+         * Call preprocess and visit the next neighbour.
+         */
+        visit:;  // int p
+        {
+            preprocess(A[p]);
+            is_first = true;
+            goto nextNeighbor;
         }
 
-            // if it's the second index
-        else if (A[p - 2] <= n) {
-            int v = A[p - 2];
+        /**
+         * Main logic for changing vertices.
+         * is_first prevents access for non-existent indexes (p >= n + m + 2)
+         */
+        nextNeighbor:;  // int p, bool is_first
+        {
+            // if it's the first index
+            if (is_first && A[p] <= n) {
+                int v = A[p];
+                p++;
 
-            // if they're switched
-            if ((v == v_s && A[T[p - 2]] > A[p - 1]) || A[A[T[p - 2]]] > A[p - 1]) {
-                p--;
+                // swap the first and the second
+                // the first is stored in the adjacency array of the predecessor
                 if (v == v_s) std::swap(A[T[p - 1]], A[p]);
                 else std::swap(A[A[T[p - 1]]], A[p]);
-                follow(p);
+
+                goto follow;
             }
+
+                // if it's the second index
+            else if (A[p - 2] <= n) {
+                int v = A[p - 2];
+
+                // if they're switched
+                if ((v == v_s && A[T[p - 2]] > A[p - 1]) || A[A[T[p - 2]]] > A[p - 1]) {
+                    p--;
+
+                    if (v == v_s) std::swap(A[T[p - 1]], A[p]);
+                    else std::swap(A[A[T[p - 1]]], A[p]);
+
+                    goto follow;
+                }
+            }
+
+            // if we went through all the neighbours
+            if (p >= n + m + 2 || A[p] <= n) {
+                // find the name of the vertex that we're currently iterating
+                int q = iterate_backwards(p - 1);
+                int v = A[q];
+
+                // if it's the starting one then we're done
+                // else backtrack
+                if (v == v_s) {
+                    T[v]++;
+                    postprocess(v);
+                    goto restore;
+                } else {
+                    p = q;
+                    goto backtrack;
+                }
+            }
+
+            // attempt to follow pointer at p
+            goto follow;
         }
 
-        // if we went through all the neighbours
-        if (p >= n + m + 2 || A[p] <= n) {
-            // find the name of the vertex that we're currently iterating
-            int q = iterate_backwards(p - 1);
-            int v = A[q];
+        /**
+         * Follow the pointer stored at p, if it's white; else go to neighbour.
+         */
+        follow:;
+        {
+            if (isWhite(A[A[p]])) {
+                int q = A[p];  // where it points
+                int v = A[q];  // the name of the vertex it points to
 
-            // if it's the starting one then we're done
-            // else backtrack
-            if (v == v_s) {
-                T[v]++;
-                restore();
-                return;
+                // reverse pointer creation
+                A[p] = T[v];
+                T[v] = p;
+
+                p = q;
+                goto visit;
             } else {
-                backtrack(q);
+                p++;
+                is_first = false;
+                goto nextNeighbor;
             }
         }
 
-        // attempt to follow pointer at p
-        follow(p);
-    }
+        /**
+         * Backtrack from position q of vertex A[q].
+         */
+        backtrack:;
+        {
+            int v = A[p];  // name of the vertex we're backtracking from
+            int r = T[v];  // reverse pointer stored at the predecessor
 
-    void follow(int p) {
-        // follow the pointer stored at p, if it's white; else go to neighbour
-        if (isWhite(A[A[p]])) {
-            int q = A[p];  // where it points
-            int v = A[q];  // the name of the vertex it points to
+            // revert inverse pointer
+            T[v] = A[r] + 1;
+            A[r] = p;
 
-            // reverse pointer creation
-            A[p] = T[v];
-            T[v] = p;
-
-            visit(q);
-        } else {
-            nextNeighbor(p + 1, false);
+            postprocess(v);
+            p = r + 1;
+            is_first = false;
+            goto nextNeighbor;
         }
-    }
 
-    void backtrack(int q) {
-        // backtrack from position q of vertex A[q]
-        int v = A[q];  // name of the vertex we're backtracking from
-        int p = T[v];  // reverse pointer stored at the predecessor
-
-        // revert inverse pointer
-        T[v] = A[p] + 1;
-        A[p] = q;
-
-        postprocess(v);
-        nextNeighbor(p + 1, false);
+        /**
+         * Restore the representation.
+         */
+        restore:;
+        {
+            for (int v = 1; v < n + 1; v++)
+                T[v] -= 1;
+        }
     }
 };
 
