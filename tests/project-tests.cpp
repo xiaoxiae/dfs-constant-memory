@@ -1,5 +1,5 @@
-#include "../lib/dfs-linear-memory.cpp"
-#include "../lib/dfs-constant-memory.cpp"
+#include "../lib/dfs-linear-memory.h"
+#include "../lib/dfs-constant-memory.h"
 #include "gtest/gtest.h"
 #include <queue>
 #include <stack>
@@ -306,9 +306,9 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         // note that they are indexed from 1, because -0 == 0...
         int start = random(0, vertices(graph));
         std::vector<int> order;
-        auto pre_linear = [&order](int v) { order.push_back(v + 1); };
-        auto post_linear = [&order](int v) { order.push_back(-v - 1); };
-        dfs_linear_memory(graph, start, pre_linear, post_linear);
+        auto pre = [&order](int v) { order.push_back(v + 1); };
+        auto post = [&order](int v) { order.push_back(-v - 1); };
+        dfs_linear_memory(graph, start, pre, post);
 
         check_dfs_order(graph, order, start + 1);
 
@@ -333,9 +333,7 @@ void test(int n_lo, int n_hi, const std::set<int> &forbidden_degrees = std::set<
         // TEST CONSTANT DFS
         // -----------------
         order.clear();
-        auto pre_constant = [&order](int v) { order.push_back(v); };
-        auto post_constant = [&order](int v) { order.push_back(-v); };
-        dfs_constant_memory(graph, start, pre_constant, post_constant);
+        dfs_constant_memory(graph, start, pre, post);
 
         check_dfs_order(graph, order, start + 1);
     }
