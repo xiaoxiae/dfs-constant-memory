@@ -52,110 +52,113 @@ public:
         /**
          * Call preprocess and visit the next neighbour.
          */
-        visit:/*(int p)*/{
-        preprocess(A[p] - 1);
+        visit:/*(int p)*/
+        {
+            preprocess(A[p] - 1);
 
-        is_first = true;
-        goto nextNeighbor;
-    }
+            is_first = true;
+            goto nextNeighbor;
+        }
 
         /**
          * Main logic for changing vertices.
-         * is_first prevents access for non-existent indexes (p >= n + m + 2)
+         * is_first prevents access for non-existent indexes (p >= n + m + 2).
          */
-        nextNeighbor:/*(int p, bool is_first)*/{
-        // if it's the first index
-        if (is_first && A[p] <= n) {
-            int v = A[p];
-            p++;
+        nextNeighbor:/*(int p, bool is_first)*/
+        {
+            // if it's the first index
+            if (is_first && A[p] <= n) {
+                int v = A[p];
+                p++;
 
-            // swap the first and the second (never visit a vertex from the first position)
-            if (v == v_s) std::swap(A[T[p - 1]], A[p]);
-            else std::swap(A[A[T[p - 1]]], A[p]);
-
-            goto follow;
-        }
-        else if (A[p - 2] <= n) {
-            int v = A[p - 2];
-
-            // if they're switched
-            if ((v == v_s && A[T[p - 2]] > A[p - 1]) || A[A[T[p - 2]]] > A[p - 1]) {
-                p--;
-
+                // swap the first and the second (never visit a vertex from the first position)
                 if (v == v_s) std::swap(A[T[p - 1]], A[p]);
                 else std::swap(A[A[T[p - 1]]], A[p]);
 
                 goto follow;
+            } else if (A[p - 2] <= n) {
+                int v = A[p - 2];
+
+                // if they're switched
+                if ((v == v_s && A[T[p - 2]] > A[p - 1]) || A[A[T[p - 2]]] > A[p - 1]) {
+                    p--;
+
+                    if (v == v_s) std::swap(A[T[p - 1]], A[p]);
+                    else std::swap(A[A[T[p - 1]]], A[p]);
+
+                    goto follow;
+                }
             }
-        }
 
-        // if we went through all the neighbours
-        if (p >= n + m + 2 || A[p] <= n) {
-            // find the name of the vertex that we're currently iterating
-            int q = iterate_backwards(p - 1);
-            int v = A[q];
+            // if we went through all the neighbours
+            if (p >= n + m + 2 || A[p] <= n) {
+                // find the name of the vertex that we're currently iterating
+                int q = iterate_backwards(p - 1);
+                int v = A[q];
 
-            // if it's the starting one then we're done
-            // else backtrack
-            if (v == v_s) {
-                T[v]++;
-                postprocess(v - 1);
-                goto restore;
-            } else {
-                p = q;
-                goto backtrack;
+                // if it's the starting one then we're done
+                // else backtrack
+                if (v == v_s) {
+                    T[v]++;
+                    postprocess(v - 1);
+                    goto restore;
+                } else {
+                    p = q;
+                    goto backtrack;
+                }
             }
-        }
 
-        // attempt to follow pointer at p
-        goto follow;
-    }
+            // attempt to follow pointer at p
+            goto follow;
+        }
 
         /**
          * Follow the pointer stored at p, if it's white; else go to neighbour.
          */
-        follow:/*(int p)*/{
-        if (isWhite(A[A[p]])) {
-            int q = A[p];  // where it points
-            int v = A[q];  // the name of the vertex it points to
+        follow:/*(int p)*/
+        {
+            if (isWhite(T[A[p]])) {
+                // create a reverse pointer
+                int q = A[p];  // where it points
+                int v = A[q];  // the name of the vertex it points to
 
-            // reverse pointer creation
-            A[p] = T[v];
-            T[v] = p;
+                A[p] = T[v];
+                T[v] = p;
 
-            p = q;
-            goto visit;
-        } else {
-            p++;
-            is_first = false;
-            goto nextNeighbor;
+                p = q;
+                goto visit;
+            } else {
+                p++;
+                is_first = false;
+                goto nextNeighbor;
+            }
         }
-    }
 
         /**
          * Backtrack from position p of vertex A[p].
          */
-        backtrack:/*(int p)*/{
-        int v = A[p];  // name of the vertex we're backtracking from
-        int r = T[v];  // reverse pointer stored at the predecessor
+        backtrack:/*(int p)*/
+        {
+            int v = A[p];  // name of the vertex we're backtracking from
+            int r = T[v];  // reverse pointer stored at the predecessor
 
-        // revert inverse pointer
-        T[v] = A[r] + 1;
-        A[r] = p;
+            T[v] = A[r] + 1;
+            A[r] = p;
 
-        postprocess(v - 1);
-        p = r + 1;
-        is_first = false;
-        goto nextNeighbor;
-    }
+            postprocess(v - 1);
+            p = r + 1;
+            is_first = false;
+            goto nextNeighbor;
+        }
 
         /**
          * Restore the representation.
          */
-        restore:{
-        for (int v = 1; v < n + 1; v++)
-            T[v] -= 1;
-    }
+        restore:
+        {
+            for (int v = 1; v < n + 1; v++)
+                T[v] -= 1;
+        }
     }
 };
 
