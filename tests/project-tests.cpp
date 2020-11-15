@@ -22,7 +22,10 @@ constexpr int GENERATIONS = 100;
  */
 int random(int lo, int hi) {
     static bool seeded = false;
-    if (!seeded) { seeded = true; }
+    if (!seeded) {
+        srand(0xdeadbeef);
+        seeded = true;
+    }
 
     return lo + rand() % (hi - lo);
 }
