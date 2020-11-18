@@ -263,27 +263,40 @@ void check_dfs_order(std::vector<int> &graph, std::vector<int> order, int start)
     ASSERT_EQ(order[order.size() - 1], -start) << attach_graph("The starting vector is not exited last.", graph);
 
     // simulate the DF
-    std::stack<int> path;
-    path.push(start);
+    std::vector<int> path;
+    explored.clear();
+    explored.resize(vertices(graph));
+    path.push_back(start);
 
     for (int v : order) {
         if (abs(v) == start) continue;
 
         // if we're appending
         if (v > 0) {
-            auto nb = neighbours(graph, path.top());
+            auto nb = neighbours(graph, path.back());
 
             // check if we can go to that vertex
             ASSERT_TRUE(std::find(nb.begin(), nb.end(), v) != nb.end()) << attach_graph(
-                                "Vertex " + std::to_string(path.top()) + " does not contain vertex " +
+                                "Vertex " + std::to_string(path.back()) + " does not contain vertex " +
                                 std::to_string(v) + " as a neighbour.", graph);
 
-            path.push(v);
+            path.push_back(v);
         } else {
-            ASSERT_EQ(path.top(), abs(v)) << attach_graph(
+            // check, if we're leaving the correct vertex
+            ASSERT_EQ(path.back(), abs(v)) << attach_graph(
                                 "Postprocess was called on vertex " + std::to_string(abs(v)) + ", although we're in " +
-                                std::to_string(path.top()) + ":", graph);
-            path.pop();
+                                std::to_string(path.back()) + ":", graph);
+
+            // check if all other children were explored
+            // TODO: isn't this redundant?
+            for (int neighbour : neighbours(graph, path.back())) {
+                ASSERT_TRUE(std::find(path.begin(), path.end(), neighbour) != path.end() || explored[neighbour]) << attach_graph(
+                                    "Postprocess was called on vertex " + std::to_string(abs(v)) + " before exploring its neighbour " +
+                                    std::to_string(path.back()) + ":", graph);
+            }
+
+            explored[path.back()] = true;
+            path.pop_back();
         }
     }
 
