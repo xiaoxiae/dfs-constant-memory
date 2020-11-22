@@ -257,7 +257,7 @@ void check_dfs_order(std::vector<int> &graph, std::vector<int> order, int start)
     for (int i : order) explored[abs(i) - 1] = false;
     for (int i = 0; i < explored.size(); ++i)
         ASSERT_TRUE(!explored[i]) << attach_graph(
-                            "The vertex " + std::to_string(i) + " is accessible but was not explored.", graph);
+                            "The vertex " + std::to_string(i + 1) + " is accessible but was not explored.", graph);
 
     ASSERT_EQ(order[0], start) << attach_graph("The starting vector is not entered first.", graph);
     ASSERT_EQ(order[order.size() - 1], -start) << attach_graph("The starting vector is not exited last.", graph);

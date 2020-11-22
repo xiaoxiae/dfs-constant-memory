@@ -3,16 +3,6 @@
 #include "utilities.h"
 
 /**
- * Return the number of nodes of the given graph.
- */
-int vertices(std::vector<int> &graph) { return graph[0]; }
-
-/**
- * Return the number of vertices of the given graph.
- */
-int edges(std::vector<int> &graph) { return graph[vertices(graph) + 1]; }
-
-/**
  * Return the neighbours of the given vertex as a span.
  * Note that they are indexed from 1.
  *

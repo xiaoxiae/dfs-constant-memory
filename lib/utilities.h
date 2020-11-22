@@ -3,9 +3,16 @@
 #include <vector>
 #include <span>
 
-int vertices(std::vector<int> &graph);
 
-int edges(std::vector<int> &graph);
+/**
+ * Return the number of nodes of the given graph.
+ */
+inline int vertices(std::vector<int> &graph) { return graph[0]; }
+
+/**
+ * Return the number of vertices of the given graph.
+ */
+inline int edges(std::vector<int> &graph) { return graph[vertices(graph) + 1]; }
 
 std::span<int> neighbours(std::vector<int> &graph, int vertex);
 
